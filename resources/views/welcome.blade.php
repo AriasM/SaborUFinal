@@ -41,6 +41,7 @@
                     <th>ID</th>
                     <th>Plato</th>
                     <th>Cantidad</th>
+                    <th>Observaciones</th>
                     <th>Cliente</th>
                     <th>Estado</th>
                     <th></th>
@@ -67,6 +68,7 @@
                   <th>ID</th>
                   <th>Plato</th>
                   <th>Cantidad</th>
+                  <th>Observaciones</th>
                   <th>Cliente</th>
                   <th>Estado</th>
                   <th></th>

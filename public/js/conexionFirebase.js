@@ -214,6 +214,10 @@ function cargarPedidosTablas(){
                     contPendiente+=1;
                     cargarDatos(1, valor, indice);
                 break;
+                case "Aceptado":
+                    contPendiente+=1;
+                    cargarDatos(2, valor, indice);
+                break;
                 case "Entregado":
                     contEntregado+=1;
                     cargarDatos(2, valor, indice);
@@ -239,8 +243,7 @@ function cargarDatos(estado, pedido, idPedido){
 
     switch(estado){
         case 1:
-            var boton = '<button type="button" class="btn btn-info btn-link">Entregar</button>';
-            var fila="<tr><td>"+idPedido+"</td><td>"+pedido.items[0].plato.nombrePlato+"</td><td>"+pedido.items[0].cantidad+"</td><td>"+pedido.usuario.nombreUsuario+"</td><td>"+pedido.estado+"</td><td>"+boton+"</td></tr>";
+            var fila="<tr><td>"+idPedido+"</td><td>"+pedido.items[0].plato.nombrePlato+"</td><td>"+pedido.items[0].cantidad+"</td><td>"+pedido.items[0].comentarios+"</td><td>"+pedido.usuario.nombre+"</td><td>"+pedido.estado+"</td></tr>";
             var btn = document.createElement("TR");
             btn.innerHTML=fila;
             document.getElementById("tablita").appendChild(btn);
@@ -251,42 +254,44 @@ function cargarDatos(estado, pedido, idPedido){
             break;
 
             case 2:
-                var boton = '<button type="button" class="btn btn-info btn-link">Listo</button>';
-                var fila="<tr><td>"+idPedido+"</td><td>"+pedido.items[0].plato.nombrePlato+"</td><td>"+pedido.items[0].cantidad+"</td><td>"+pedido.usuario.nombreUsuario+"</td><td>"+pedido.estado+"</td><td>"+boton+"</td></tr>";
+                var fila="<tr><td>"+idPedido+"</td><td>"+pedido.items[0].plato.nombrePlato+"</td><td>"+pedido.items[0].cantidad+"</td><td>"+pedido.items[0].comentarios+"</td><td>"+pedido.usuario.nombre+"</td><td>"+pedido.estado+"</td></tr>";
                 var btn = document.createElement("TR");
                 btn.innerHTML=fila;
                 document.getElementById("tablita2").appendChild(btn);
+                $('#tablita2 tr').on('click', function(){
+                  var dato = $(this).find('td:first').html();
+                  obtenerPedido(dato);
+            });
                 break;
     }
 }
 
-function obtenerPedido(idPedido){
-
+function obtenerPedido(idPedido)
+{
     var referencia = firebase.database().ref("Pedidos/"+idPedido);
     var pedido = new Object();
 
     referencia.on('value', function(datos){
 
         pedido = datos.val();
-        actualizarPedido(idPedido, pedido);
 
     }, function(objetoError){
         alert(objetoError.code);
     });
 
-}
-function actualizarPedido(idPedido, pedido){
-
-    switch(pedido.estado){
+    switch(pedido.estado)
+    {
         case "Pendiente":
-            pedido.estado = "Entregado";   
+            pedido.estado = "Aceptado";   
             break;
+
+        case "Aceptado":
+            pedido.estado = "Entregado";   
+            break;    
     }
 
-    firebase.database().ref("Pedidos/"+idPedido).update(pedido);
-
+    referencia.update(pedido);
 }
-
 function cargarDatosHistorial(){
 
     var referencia = firebase.database().ref("Pedidos");
@@ -478,5 +483,48 @@ function obtenerNumeroVentasPlato(pedidos){
     return cantidadVentasMes;
 }
 
+function enviarNotificacion()
+{
+    var ref = firebase.database().ref("Tokens");
+    var tokens = {};
 
+    ref.on('value', function(datos){
 
+        tokens = datos.val();
+
+        $.each(tokens, function(indice, valor){
+
+            $.ajax(
+            {
+                type : "POST",
+                url : "https://fcm.googleapis.com/fcm/send",
+
+                headers :
+                {
+                     Authorization : "key=AAAAxaYDdSA:APA91bGjGDolTjSeWMkQwu17aXEqbcYE9FrBNHnvQ7iffK2d7sPLhIh4OLL59tRlEx8DyFmMCQzsUumb4IEzIygq1PodxQlV3aMMzX--Y85nD5XtMC4UGULt2jeEHDtLLejK1mPZkjKzSxFXJ-AX-HL4BMMntUqjNw"
+                },
+
+               contentType : 'application/json',
+               data : JSON.stringify(
+               {
+                   "to" : valor.token,
+                   "notification": {
+                    "title": "Sabor a U",
+                    "text": "Hemos actualizado el menú, no te pierdas nuestras nuevas delicias ;)"
+                    }
+               }),
+
+               success : function(response)
+               {
+                   console.log(response);
+               },
+               error : function(xhr, status, error)
+               {
+                   console.log(xhr.error);
+               }
+            });
+        });
+    }, function(objetoError){
+        alert(objetoError.code);
+    });
+}
